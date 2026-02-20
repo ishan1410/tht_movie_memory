@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import InteractiveDashboard from '@/components/InteractiveDashboard'
 import { api } from '@/lib/api'
 
-// We need to mock Next.js Navigation and Image
+// Mock Next.js Navigation and Image
 vi.mock('next/navigation', () => ({
     useRouter: () => ({ push: vi.fn() })
 }))

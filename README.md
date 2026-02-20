@@ -228,9 +228,7 @@ prisma/
 
 ---
 
-## AI Usage in Development
-
-AI was selectively leveraged during the development of this project to accelerate boilerplate creation and enforce best practices:
+## Note on AI Usage
 
 1. **Rapid Boilerplate Generation:** Generated the initial Next.js App Router directory structure, database connection singletons (`/src/lib/prisma.ts`), and NextAuth.js Google Provider templates.
 2. **Database Schema Ideation:** Acted as an architectural sounding board to weigh the tradeoffs between fully normalizing the relational schema versus denormalizing the `favoriteMovie` column directly onto the `User` model.

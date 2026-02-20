@@ -6,7 +6,7 @@ const openai = new OpenAI({
 })
 
 export async function generateMovieFact(movieName: string, userId: string): Promise<string> {
-    // Base Implementation: Generate new fact every time (no caching yet)
+    // Base Implementation: Generate new fact every time (no caching)
 
     try {
         const completion = await openai.chat.completions.create({
