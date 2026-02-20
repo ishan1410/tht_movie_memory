@@ -1,4 +1,4 @@
-# Scowtt SWE Take-Home Exercise: Movie Memory 🎬
+# Scowtt SWE Take-Home Exercise: Movie Memory
 
 **Candidate:** Ishan Nimesh Patel  
 **Email:** ipatel8@asu.edu | ipatel1400@gmail.com  
@@ -43,7 +43,14 @@ Every UI segment accounts for edge cases. If OpenAI takes several seconds to res
 
 ---
 
-## Schema Design
+## Architecture Overview
+
+This project implements a decoupled, API-driven architecture utilizing a Next.js (App Router) React frontend and a PostgreSQL database powered by Prisma.
+
+### Why Variant B?
+I selected **Variant B (Frontend/API-Focused)** because it provides the most authentic, native-feeling user experience. By shifting state orchestration to the client via SWR, we achieve instantaneous Optimistic UI updates, eliminate full-page reload flashes, and gain granular control over the caching lifecycle of expensive third-party APIs (OpenAI). It also enforces the creation of strict, reusable JSON REST contracts (`src/lib/api.ts`) rather than tightly coupling database logic directly into React Server Components.
+
+### Schema Design
 
 The application utilizes a PostgreSQL relational database accessed securely via Prisma.
 
@@ -103,6 +110,16 @@ erDiagram
 1. **`User` Model**: Acts as the central anchor. It handles standard OAuth profile properties but also inherently stores the `favoriteMovie` column. Deliberately denormalizing current state into this table prevents unnecessary `JOIN`s solely to render the primary application dashboard.
 2. **`Fact` Model**: A dedicated table with a one-to-many relationship back to `User`. Given the latency and cost of OpenAI inference, separating `Fact` allows us to persist a historical ledger of AI facts with `createdAt` timestamps, maintaining a lean `User` entity while supporting historical caching.
 3. **NextAuth Models**: Out-of-the-box OAuth provider persistence structures (`Account`, `Session`, `VerificationToken`).
+
+### Key Tradeoffs
+- **Optimistic UI vs. Eventual Consistency:** I prioritized perceived performance by updating the UI instantly when a user edits their movie. The tradeoff is the risk of displaying a state that hasn't fully persisted. This is mitigated by deterministic rollbacks via SWR's `mutate` API if the underlying `fetch` fails.
+- **Client-Side Caching vs. Redis:** I relied on SWR's client-side caching (30-second `dedupingInterval`) for the OpenAI `/api/fact` endpoint rather than implementing a robust server-side caching layer like Redis. This tradeoff drastically reduced infrastructural complexity for a take-home assessment, while still effectively throttling API spam from aggressive client tab-switching or re-renders.
+- **Denormalization in `User`:** I added `favoriteMovie` directly to the `User` model rather than a separate normalized `Profile` table. While slightly denormalizing the schema, this heavily optimizes dashboard loading, as the primary application state is fetched in a single query without requiring SQL `JOIN`s.
+
+### What I Would Improve With 2 More Hours
+1. **AI-Driven Tagging & Recommendation Engine (Product Focus):** I would leverage the existing OpenAI integration to generate structured JSON genre/mood tags whenever a user submits a new favorite movie. By normalizing and storing these tags in PostgreSQL, the application would organically build a crowdsourced movie taxonomy. We could then expose a new endpoint to recommend movies to users based on overlapping tags, transforming the app from a simple tracker into a dynamic discovery platform.
+2. **Server-Side Rate Limiting (Infrastructure):** While SWR deduplicates identical client requests, a malicious actor could theoretically bypass the client and hit the `/api/fact` route directly. I would implement a strict Redis-based rate-limiting middleware (e.g., Upstash) to guard the OpenAI API quota.
+3. **Server-Side Rendering for the Initial Fact (Performance):** Currently, the dashboard requires a client-side network waterfall to fetch the AI fact after the `InteractiveDashboard` mounts. I would refactor to pre-fetch the initial fact on the server and pass it as fallback data to SWR, reducing Time to Interactive and eliminating the loading spinner on the very first visit.
 
 ---
 
@@ -208,3 +225,14 @@ src/
 prisma/
 └── schema.prisma         # Relational database models (User, Fact, NextAuth structures)
 ```
+
+---
+
+## AI Usage in Development
+
+AI was selectively leveraged during the development of this project to accelerate boilerplate creation and enforce best practices:
+
+1. **Rapid Boilerplate Generation:** Generated the initial Next.js App Router directory structure, database connection singletons (`/src/lib/prisma.ts`), and NextAuth.js Google Provider templates.
+2. **Database Schema Ideation:** Acted as an architectural sounding board to weigh the tradeoffs between fully normalizing the relational schema versus denormalizing the `favoriteMovie` column directly onto the `User` model.
+3. **Testing Infrastructure:** Rapidly scaffolded the initial `vitest.config.ts` integration and drafted the skeleton for `@testing-library/react` DOM interaction tests (specifically mocking `next/navigation` routing logic).
+4. **Type Safety Assurance:** Assisted in defining robust, strict TypeScript interfaces (`GetMeResponse`, `GetFactResponse`) to ensure the custom `fetchWithHandling` API client was entirely end-to-end type safe.
